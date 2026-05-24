@@ -1,7 +1,7 @@
-# 🏭 AI Email Content Checker — Tata Steel
+# 🏭 AI Email Content Checker 
 
 An AI-powered multi-agent system to analyze corporate emails 
-before they are sent. Built during my summer internship at Tata Steel.
+before they are sent. Built during my summer internship 
 
 ## 🤖 Agents
 | Agent | Purpose |
