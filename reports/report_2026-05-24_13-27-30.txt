@@ -1,0 +1,75 @@
+============================================================
+  AI EMAIL CHECKER — TATA STEEL
+  Date    : 24 May 2026, 01:27 PM
+  Subject : urgent update plant shutdown next week
+  Recipient: Senior management, Board, or C-suite executive
+============================================================
+
+
+────────────────────────────────────────────────────────────
+  🎭  Tone Analyzer
+────────────────────────────────────────────────────────────
+SCORE: 40
+VERDICT: Needs Work
+TONE DETECTED: too casual
+ISSUES:
+- The email starts with an informal greeting ("hi team") and lacks a formal address.
+- The tone is not suitable for senior management, with phrases like "figure it out somehow" and "i guess".
+- Sensitive information, such as layoffs and potential salary delays, is presented in a blunt manner.
+POSITIVES:
+- The email attempts to address important issues and provide some context.
+TIP: Use a formal greeting and sign-off, and rephrase sensitive information in a more considerate and polished tone.
+
+────────────────────────────────────────────────────────────
+  🛡️  Compliance Checker
+────────────────────────────────────────────────────────────
+SCORE: 40
+RISK LEVEL: High
+VERDICT: Serious Issues
+FLAGS:
+- Confidential information (plant shutdown, repair costs) is being shared without proper encryption or access control.
+- Sensitive data (salary figures, temporary worker layoffs) is being exposed to a potentially wide audience.
+TIP: Use a secure and encrypted channel to share sensitive information, and remove or redact financial figures and personnel data to minimize exposure.
+
+────────────────────────────────────────────────────────────
+  ✏️  Clarity Optimizer
+────────────────────────────────────────────────────────────
+SCORE: 60
+READABILITY: Moderate
+VERDICT: Unclear
+ISSUES:
+- The email lacks a clear structure and organization, making it difficult to follow.
+- The use of vague phrases, such as "some serious technical problems" and "figure it out somehow", creates confusion.
+REWRITE: Original: "the costs for repairs will be somewhere around 50 lakhs which is not in our current budget so finance team will figure it out somehow" → Improved: "The estimated repair cost is approximately 50 lakhs, which exceeds our current budget. The finance team will develop a plan to address this shortfall."
+TIP: Use specific and concise language to convey key information, avoiding vague phrases and technical jargon.
+
+────────────────────────────────────────────────────────────
+  📧  Subject Line Reviewer
+────────────────────────────────────────────────────────────
+SCORE: 40
+VERDICT: Poor
+ISSUES:
+- The subject line is not clear and specific, it does not provide enough information about the plant shutdown.
+- The subject line is not professional, it uses lowercase letters and lacks proper formatting.
+- The subject line is too short and vague, it does not accurately represent the email content.
+ALTERNATIVES:
+1. "Plant 2 Shutdown: Technical Issues and Budget Implications"
+2. "Urgent: Plant 2 Closure Due to Technical Problems - Next Week"
+3. "Notification: Plant 2 Shutdown and Financial Implications"
+TIP: My first alternative is better because it provides a clear and concise summary of the email content, using proper formatting and avoiding vagueness, making it more suitable for senior management, Board, or C-suite executives.
+
+────────────────────────────────────────────────────────────
+  🏆  Final Summary (Chief Communication Officer)
+────────────────────────────────────────────────────────────
+FINAL VERDICT: Rewrite needed
+BIGGEST STRENGTH: The email attempts to address important issues and provide some context about the plant shutdown.
+BIGGEST PROBLEM: The tone is too casual and insensitive, especially when discussing sensitive information such as layoffs and salary delays.
+ACTION PLAN:
+1. Use a formal greeting and sign-off, and rephrase sensitive information in a more considerate and polished tone.
+2. Remove or redact financial figures and personnel data to minimize exposure, and use a secure and encrypted channel to share sensitive information.
+3. Rewrite the email with a clear structure and organization, using specific and concise language to convey key information.
+ENCOURAGEMENT: You're on the right track by addressing key issues, now take the time to refine your approach for a more effective and professional communication.
+
+============================================================
+  OVERALL SCORE : 45 / 100
+============================================================
