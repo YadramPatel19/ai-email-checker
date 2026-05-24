@@ -217,6 +217,67 @@ Keep it short, clear, and helpful. No extra text outside this format.
         "raw": response
     }
 
+# ==============================================================
+# AGENT 6 — EMAIL REWRITER
+# Rewrites the full email based on all agent feedback
+# ==============================================================
+
+def rewriter_agent(email_body: str, subject: str, recipient: str, all_results: list) -> dict:
+    """
+    Takes the original email + all agent feedback and produces
+    a fully rewritten, improved version of the email.
+    """
+    # Collect all feedback into one block
+    feedback = ""
+    for r in all_results:
+        feedback += f"\n{r['agent']}:\n{r['raw']}\n"
+
+    prompt = f"""
+You are a senior corporate communications expert at Tata Steel.
+
+The following email was analyzed by 5 AI agents and found to have issues.
+Your job is to rewrite the email from scratch, fixing ALL the problems 
+identified by the agents while keeping the original intent and information.
+
+ORIGINAL EMAIL SUBJECT: {subject}
+ORIGINAL EMAIL BODY:
+{email_body}
+
+RECIPIENT TYPE: {recipient}
+
+AGENT FEEDBACK SUMMARY:
+{feedback}
+
+Rewrite rules:
+- Fix the tone to be professional and appropriate for {recipient}
+- Remove any compliance risks or sensitive information exposure
+- Make it clear, concise and easy to understand
+- Write a strong, specific subject line
+- Use proper corporate email structure (greeting, body, closing)
+- Remove vague language like "i guess", "hopefully", "somehow"
+- Add clear action items with deadlines where needed
+- Keep it genuine, not robotic
+
+Respond in this EXACT format:
+
+IMPROVED SUBJECT: <the new subject line>
+
+IMPROVED EMAIL:
+<the full rewritten email here>
+
+KEY CHANGES MADE:
+- <change 1>
+- <change 2>
+- <change 3>
+- <change 4>
+- <change 5>
+"""
+    response = call_llm(prompt)
+    return {
+        "agent": "✍️  Email Rewriter",
+        "raw": response
+    }
+
 def run_all_agents(subject: str, email_body: str, recipient: str) -> list:
     print("\n" + "="*60)
     print("  STARTING MULTI-AGENT ANALYSIS")
@@ -224,27 +285,31 @@ def run_all_agents(subject: str, email_body: str, recipient: str) -> list:
 
     results = []
 
-    print("\n  [1/5] 🎭  Tone Analyzer is running...")
+    print("\n  [1/6] 🎭  Tone Analyzer is running...")
     results.append(tone_agent(email_body, recipient))
     print("        ✅ Done!")
 
-    print("  [2/5] 🛡️  Compliance Checker is running...")
+    print("  [2/6] 🛡️  Compliance Checker is running...")
     results.append(compliance_agent(email_body, recipient))
     print("        ✅ Done!")
 
-    print("  [3/5] ✏️  Clarity Optimizer is running...")
+    print("  [3/6] ✏️  Clarity Optimizer is running...")
     results.append(clarity_agent(email_body))
     print("        ✅ Done!")
 
-    print("  [4/5] 📧  Subject Line Reviewer is running...")
+    print("  [4/6] 📧  Subject Line Reviewer is running...")
     results.append(subject_agent(subject, email_body, recipient))
     print("        ✅ Done!")
 
-    print("  [5/5] 🏆  Summary Agent is running...")
+    print("  [5/6] 🏆  Summary Agent is running...")
     results.append(summary_agent(results, subject, recipient))
     print("        ✅ Done!")
 
-    print("\n  All 5 agents finished!")
+    print("  [6/6] ✍️  Email Rewriter is running...")
+    results.append(rewriter_agent(email_body, subject, recipient, results))
+    print("        ✅ Done!")
+
+    print("\n  All 6 agents finished!")
     print("="*60)
 
     return results
