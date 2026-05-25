@@ -22,8 +22,8 @@ before they are sent. Built during my summer internship
 
 ## ⚙️ Setup
 
-    git clone https://github.com/YOUR_USERNAME/ai-email-checker-tata-steel.git
-    cd ai-email-checker-tata-steel
+    git clone https://github.com/YadramPatel19/ai-email-checker.git
+    cd ai-email-checker
     python -m venv venv
     venv\Scripts\activate
     pip install -r requirements.txt
