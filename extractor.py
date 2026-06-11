@@ -8,7 +8,10 @@ from PIL import Image
 import pytesseract
 
 # ── Set tesseract path (Windows) ──────────────────────────────
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+import platform
+if platform.system() == "Windows":
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# On Linux (Streamlit Cloud) tesseract is installed via packages.txt
 
 
 # ==============================================================
@@ -121,3 +124,27 @@ def verify_links(links: list) -> list:
                 "working": False
             })
     return results
+
+def extract_qr_links(file) -> list:
+    """
+    Scans an image or GIF for QR codes and extracts the URLs inside them.
+    Returns a list of URLs found in QR codes.
+    """
+    try:
+        from pyzbar.pyzbar import decode
+        import numpy as np
+        import cv2
+
+        image = Image.open(file).convert("RGB")
+        img_array = np.array(image)
+        img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+
+        decoded_objects = decode(img_bgr)
+        qr_links = []
+        for obj in decoded_objects:
+            data = obj.data.decode("utf-8")
+            qr_links.append(data)
+
+        return qr_links
+    except Exception as e:
+        return []

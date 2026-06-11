@@ -3,11 +3,11 @@ from agents import (
     tone_agent, compliance_agent, clarity_agent,
     subject_agent, summary_agent, rewriter_agent
 )
-from grammar_agent import grammar_agent, alt_text_agent
+from grammar_agent import grammar_agent, alt_text_agent, duplicate_content_agent
 from extractor import (
     extract_from_pdf, extract_from_docx, extract_from_excel,
     extract_from_image, detect_emojis, extract_links,
-    count_words, verify_links
+    count_words, verify_links, extract_qr_links
 )
 from export_report import export_as_pdf, export_as_docx
 from main import extract_score, save_report
@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 st.markdown("# 🏭 AI Email Content Checker")
-st.markdown("**Tata Steel — Corporate Communications** | 6-Agent AI Analysis")
+st.markdown("**Tata Steel — Corporate Communications** | 8-Agent AI Analysis")
 st.divider()
 
 # ══════════════════════════════════════════════════════════════
@@ -41,10 +41,9 @@ with col1:
         height=200
     )
 
-    # File uploads
     st.markdown("#### 📎 Attachments (optional)")
     uploaded_files = st.file_uploader(
-        "Upload PDF, Word, Excel, or Image files",
+        "Upload PDF, Word, Excel, or Image/GIF files",
         type=["pdf", "docx", "xlsx", "png", "jpg", "jpeg", "gif"],
         accept_multiple_files=True
     )
@@ -79,51 +78,76 @@ with col2:
     - 🏆 Summary Agent
     - ✍️ Email Rewriter
     - 📝 Grammar Checker
+    - 🔁 Duplicate Detector
     - 🖼️ Alt Text Suggester
     """)
 
 st.divider()
-analyze = st.button("🚀 Analyze & Improve Email", type="primary", use_container_width=True)
+analyze = st.button(
+    "🚀 Analyze & Improve Email",
+    type="primary",
+    use_container_width=True
+)
 
 # ══════════════════════════════════════════════════════════════
 # ANALYSIS
 # ══════════════════════════════════════════════════════════════
 if analyze:
+    # ── Validation ─────────────────────────────────────────────
     if not subject or len(subject.strip()) < 3:
         st.error("⚠️ Please enter a proper subject line.")
     elif len(email_body.strip().split()) < 5:
         st.error("⚠️ Email body is too short.")
     else:
-        # ── Extract text from uploaded files ──────────────────
+        # ── Process uploaded files ─────────────────────────────
         extracted_texts = {}
         image_count = 0
         full_text = email_body
+        links_found = extract_links(email_body)
 
         if uploaded_files:
             st.markdown("#### 📂 Processing uploaded files...")
             for f in uploaded_files:
                 fname = f.name.lower()
+
                 if fname.endswith(".pdf"):
                     t = extract_from_pdf(f)
                     extracted_texts[f.name] = t
                     full_text += "\n\n" + t
+                    links_found.extend(extract_links(t))
+
                 elif fname.endswith(".docx"):
                     t = extract_from_docx(f)
                     extracted_texts[f.name] = t
                     full_text += "\n\n" + t
+                    links_found.extend(extract_links(t))
+
                 elif fname.endswith(".xlsx"):
                     t = extract_from_excel(f)
                     extracted_texts[f.name] = t
                     full_text += "\n\n" + t
+
                 elif fname.endswith((".png", ".jpg", ".jpeg", ".gif")):
                     t = extract_from_image(f)
                     extracted_texts[f.name] = t
                     full_text += "\n\n" + t
                     image_count += 1
 
+                    # QR code detection
+                    f.seek(0)
+                    qr_found = extract_qr_links(f)
+                    if qr_found:
+                        links_found.extend(qr_found)
+                        st.info(
+                            f"🔲 QR code detected in "
+                            f"{f.name}: {', '.join(qr_found)}"
+                        )
+
+        # Remove duplicate links
+        links_found = list(set(links_found))
+
         # ── Element detection ──────────────────────────────────
         emojis_found = detect_emojis(full_text)
-        links_found = extract_links(full_text)
         word_count = count_words(full_text)
 
         # ── Verify links ───────────────────────────────────────
@@ -132,41 +156,44 @@ if analyze:
             with st.spinner("🔗 Verifying hyperlinks..."):
                 links_data = verify_links(links_found)
 
-        # ── Run all agents with progress bar ──────────────────
+        # ── Run all agents ─────────────────────────────────────
         st.markdown("### ⚙️ Running Analysis...")
         progress = st.progress(0, text="Starting agents...")
 
         results = []
 
-        progress.progress(8, text="🎭 Tone Analyzer...")
+        progress.progress(8, text="🎭 Running Tone Analyzer...")
         results.append(tone_agent(email_body, recipient))
 
-        progress.progress(22, text="🛡️ Compliance Checker...")
+        progress.progress(20, text="🛡️ Running Compliance Checker...")
         results.append(compliance_agent(email_body, recipient))
 
-        progress.progress(36, text="✏️ Clarity Optimizer...")
+        progress.progress(32, text="✏️ Running Clarity Optimizer...")
         results.append(clarity_agent(email_body))
 
-        progress.progress(50, text="📧 Subject Line Reviewer...")
+        progress.progress(44, text="📧 Running Subject Line Reviewer...")
         results.append(subject_agent(subject, email_body, recipient))
 
-        progress.progress(63, text="🏆 Summary Agent...")
+        progress.progress(55, text="🏆 Running Summary Agent...")
         results.append(summary_agent(results, subject, recipient))
 
-        progress.progress(75, text="✍️ Rewriting your email...")
+        progress.progress(65, text="✍️ Rewriting your email...")
         rewrite_result = rewriter_agent(email_body, subject, recipient, results)
         results.append(rewrite_result)
 
-        progress.progress(87, text="📝 Checking grammar...")
+        progress.progress(75, text="📝 Checking grammar...")
         grammar_result = grammar_agent(full_text)
         corrections = grammar_result.get("corrections", [])
 
-        progress.progress(95, text="🖼️ Alt text suggestions...")
+        progress.progress(85, text="🔁 Detecting duplicate content...")
+        duplicate_result = duplicate_content_agent(full_text)
+
+        progress.progress(93, text="🖼️ Generating alt text suggestions...")
         alt_result = alt_text_agent(image_count > 0, image_count)
 
-        progress.progress(100, text="✅ All done!")
+        progress.progress(100, text="✅ All agents done!")
 
-        # ── Scores ────────────────────────────────────────────
+        # ── Calculate overall score ────────────────────────────
         scores = [extract_score(r["raw"]) for r in results[:4]]
         overall = sum(scores) // len(scores) if scores else 0
 
@@ -178,66 +205,97 @@ if analyze:
         tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
             "📊 Analysis",
             "✍️ Improved Email",
-            "📝 Grammar Corrections",
+            "📝 Grammar & Duplicates",
             "🔗 Links & Elements",
             "🏆 Summary",
             "⬇️ Export"
         ])
 
-        # ── TAB 1: Analysis ────────────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # TAB 1 — Analysis Results
+        # ══════════════════════════════════════════════════════
         with tab1:
+            # Score metrics row
             s1, s2, s3, s4, s5 = st.columns(5)
-            labels = ["🎭 Tone", "🛡️ Compliance", "✏️ Clarity", "📧 Subject", "📊 Overall"]
-            cols = [s1, s2, s3, s4, s5]
-            for i, col in enumerate(cols[:4]):
-                sc = extract_score(results[i]["raw"])
+            metric_data = [
+                ("🎭 Tone", results[0]),
+                ("🛡️ Compliance", results[1]),
+                ("✏️ Clarity", results[2]),
+                ("📧 Subject", results[3]),
+            ]
+            for col, (label, result) in zip([s1, s2, s3, s4], metric_data):
+                sc = extract_score(result["raw"])
                 with col:
-                    st.metric(labels[i], f"{sc}/100")
+                    st.metric(label, f"{sc}/100")
             with s5:
                 st.metric("📊 Overall", f"{overall}/100")
 
+            # Overall score bar and verdict
             st.progress(overall / 100)
             if overall >= 80:
-                st.success("✅ Ready to send!")
+                st.success("✅ Great — Ready to send!")
             elif overall >= 60:
-                st.warning("⚠️ Fix a few things first.")
+                st.warning("⚠️ Okay — Fix a few things first.")
             elif overall >= 40:
                 st.error("❌ Needs significant improvement.")
             else:
-                st.error("🚫 Do NOT send.")
+                st.error("🚫 Do NOT send — Major issues found.")
 
-            # Word count and element info
+            # Email statistics
             st.divider()
-            ec1, ec2, ec3 = st.columns(3)
+            st.markdown("#### 📊 Email Statistics")
+            ec1, ec2, ec3, ec4 = st.columns(4)
             with ec1:
-                st.metric("📝 Total Word Count", word_count)
+                st.metric("📝 Word Count", word_count)
             with ec2:
-                st.metric("😊 Emojis Found", len(emojis_found))
+                st.metric("😊 Emojis", len(emojis_found))
             with ec3:
-                st.metric("🔗 Links Found", len(links_found))
+                st.metric("🔗 Links", len(links_found))
+            with ec4:
+                subj_len = len(subject)
+                st.metric(
+                    "📌 Subject Length",
+                    f"{subj_len} chars",
+                    delta="✅ Good" if subj_len <= 60 else "⚠️ Too long",
+                    delta_color="normal" if subj_len <= 60 else "inverse"
+                )
 
             if emojis_found:
-                st.info(f"Emojis detected: {' '.join(emojis_found)}")
+                st.warning(
+                    f"Emojis detected: {' '.join(emojis_found)} — "
+                    f"use sparingly in corporate emails."
+                )
 
+            # Individual agent result cards
             st.divider()
+            st.markdown("#### 🤖 Agent Reports")
             for i in range(4):
                 sc = extract_score(results[i]["raw"])
                 icon = "🟢" if sc >= 80 else "🟡" if sc >= 60 else "🔴"
-                with st.expander(f"{icon} {results[i]['agent']} — {sc}/100"):
+                with st.expander(
+                    f"{icon} {results[i]['agent']} — {sc}/100",
+                    expanded=False
+                ):
                     st.text(results[i]["raw"])
 
-            # Show extracted file content
+            # Extracted file content
             if extracted_texts:
                 st.divider()
-                st.markdown("#### 📎 Text extracted from attachments")
+                st.markdown("#### 📎 Text Extracted from Attachments")
                 for fname, text in extracted_texts.items():
                     with st.expander(f"📄 {fname}"):
-                        st.text(text[:2000] + ("..." if len(text) > 2000 else ""))
+                        st.text(
+                            text[:2000] + ("..." if len(text) > 2000 else "")
+                        )
 
-        # ── TAB 2: Improved Email ──────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # TAB 2 — Improved Email
+        # ══════════════════════════════════════════════════════
         with tab2:
             st.markdown("## ✍️ Your Improved Email")
+            st.markdown("*Rewritten by AI based on all agent feedback*")
             st.divider()
+
             raw_rewrite = rewrite_result["raw"]
             lines = raw_rewrite.splitlines()
             improved_subject = ""
@@ -257,38 +315,62 @@ if analyze:
                 elif section == "changes" and line.strip().startswith("-"):
                     changes.append(line.strip()[1:].strip())
 
+            # Improved subject
             if improved_subject:
                 st.markdown("#### 📌 Improved Subject Line")
                 st.info(f"**{improved_subject}**")
 
+            # Improved email body
             st.markdown("#### 📝 Improved Email Body")
-            st.text_area("Copy this:", value=improved_email.strip() or raw_rewrite, height=300)
+            st.text_area(
+                "Copy this improved email:",
+                value=improved_email.strip() if improved_email.strip() else raw_rewrite,
+                height=320,
+                key="improved_email_box"
+            )
 
+            # Key changes list
             if changes:
                 st.markdown("#### 🔧 Key Changes Made")
-                for c in changes:
-                    st.markdown(f"- ✅ {c}")
+                for change in changes:
+                    st.markdown(f"- ✅ {change}")
 
+            # Before vs After comparison
             st.divider()
-            st.markdown("#### 🔄 Before vs After")
+            st.markdown("#### 🔄 Before vs After Comparison")
             bc1, bc2 = st.columns(2)
             with bc1:
                 st.markdown("**❌ Original**")
-                st.text_area("", value=f"Subject: {subject}\n\n{email_body}",
-                             height=280, disabled=True, key="orig")
+                st.text_area(
+                    "Original",
+                    value=f"Subject: {subject}\n\n{email_body}",
+                    height=300,
+                    key="original_compare",
+                    disabled=True
+                )
             with bc2:
                 st.markdown("**✅ Improved**")
-                st.text_area("", value=f"Subject: {improved_subject}\n\n{improved_email.strip()}",
-                             height=280, disabled=True, key="impr")
+                st.text_area(
+                    "Improved",
+                    value=f"Subject: {improved_subject}\n\n{improved_email.strip()}",
+                    height=300,
+                    key="improved_compare",
+                    disabled=True
+                )
 
-        # ── TAB 3: Grammar Corrections ─────────────────────────
+        # ══════════════════════════════════════════════════════
+        # TAB 3 — Grammar & Duplicates
+        # ══════════════════════════════════════════════════════
         with tab3:
+            # Grammar corrections table
             st.markdown("## 📝 Grammar & Style Corrections")
-            st.markdown("*Sentence-level corrections with explanations*")
+            st.markdown(
+                "*Sentence-level corrections with explanations "
+                "— as per output sample format*"
+            )
             st.divider()
 
             if corrections:
-                # Build the corrections table exactly like the screenshot
                 import pandas as pd
                 df = pd.DataFrame(corrections)
                 df.columns = ["ORIGINAL", "CORRECTION", "EXPLANATION"]
@@ -297,127 +379,210 @@ if analyze:
                     use_container_width=True,
                     hide_index=True,
                     column_config={
-                        "ORIGINAL": st.column_config.TextColumn("ORIGINAL", width="medium"),
-                        "CORRECTION": st.column_config.TextColumn("CORRECTION", width="medium"),
-                        "EXPLANATION": st.column_config.TextColumn("EXPLANATION", width="large"),
+                        "ORIGINAL": st.column_config.TextColumn(
+                            "ORIGINAL", width="medium"
+                        ),
+                        "CORRECTION": st.column_config.TextColumn(
+                            "CORRECTION", width="medium"
+                        ),
+                        "EXPLANATION": st.column_config.TextColumn(
+                            "EXPLANATION", width="large"
+                        ),
                     }
                 )
-                st.success(f"Found {len(corrections)} correction(s)")
+                st.success(f"✅ Found {len(corrections)} correction(s)")
             else:
-                st.success("✅ No grammar issues found!")
+                st.success("✅ No grammar issues found — great writing!")
+
+            # Duplicate content detection
+            st.divider()
+            st.markdown("## 🔁 Duplicate & Repetitive Content Detection")
+            with st.expander("View Duplicate Content Report", expanded=True):
+                st.text(duplicate_result["raw"])
 
             # Alt text suggestions
             st.divider()
             st.markdown("## 🖼️ Image Alt Text Suggestions")
-            st.text(alt_result["raw"])
+            with st.expander("View Alt Text Recommendations", expanded=False):
+                st.text(alt_result["raw"])
 
             # User feedback
             st.divider()
             st.markdown("## 💬 Was this analysis helpful?")
+            st.markdown("*Your feedback helps improve the AI agents*")
             fc1, fc2 = st.columns(2)
             with fc1:
-                if st.button("👍 Yes, helpful!", use_container_width=True):
-                    st.success("Thank you for your feedback!")
+                if st.button("👍 Yes, very helpful!", use_container_width=True):
+                    st.success("Thank you for your positive feedback! 🎉")
             with fc2:
                 if st.button("👎 Needs improvement", use_container_width=True):
-                    feedback_text = st.text_area("Tell us what to improve:")
-                    st.info("Feedback noted — thank you!")
+                    st.text_area(
+                        "Please tell us what to improve:",
+                        key="feedback_text"
+                    )
+                    st.info("Thank you — your feedback has been noted!")
 
-        # ── TAB 4: Links & Elements ────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # TAB 4 — Links & Elements
+        # ══════════════════════════════════════════════════════
         with tab4:
+            # Hyperlink verification
             st.markdown("## 🔗 Hyperlink Verification")
             st.divider()
 
             if links_data:
+                working = [l for l in links_data if l["working"]]
+                broken = [l for l in links_data if not l["working"]]
+
+                lc1, lc2 = st.columns(2)
+                with lc1:
+                    st.metric("✅ Working Links", len(working))
+                with lc2:
+                    st.metric("❌ Broken Links", len(broken))
+
+                st.markdown("#### Link Details")
                 for link in links_data:
                     if link["working"]:
-                        st.success(f"✅ **Working** | {link['url']} | HTTP {link['status_code']}")
+                        st.success(
+                            f"✅ **Working** | {link['url']} "
+                            f"| HTTP {link['status_code']}"
+                        )
                     else:
-                        st.error(f"❌ **Broken** | {link['url']} | HTTP {link['status_code']}")
+                        st.error(
+                            f"❌ **Broken** | {link['url']} "
+                            f"| HTTP {link['status_code']}"
+                        )
             else:
-                st.info("No hyperlinks found in this email.")
+                st.info("No hyperlinks found in this email or attachments.")
 
+            # Emoji section
             st.divider()
             st.markdown("## 😊 Emoji Detection")
             if emojis_found:
-                st.warning(f"Found {len(emojis_found)} emoji(s): {' '.join(emojis_found)}")
-                st.info("⚠️ Emojis may not render correctly in all email clients. Use sparingly in corporate communications.")
+                st.warning(
+                    f"Found {len(emojis_found)} emoji(s): "
+                    f"{' '.join(emojis_found)}"
+                )
+                st.info(
+                    "⚠️ Emojis may not render correctly in all email "
+                    "clients. Use sparingly in corporate communications."
+                )
             else:
-                st.success("✅ No emojis found — appropriate for corporate email.")
+                st.success(
+                    "✅ No emojis found — appropriate for corporate email."
+                )
 
+            # Element summary
             st.divider()
-            st.markdown("## 📊 Email Statistics")
-            stat1, stat2, stat3 = st.columns(3)
-            with stat1:
-                st.metric("Total Words", word_count)
-            with stat2:
-                st.metric("Links Found", len(links_found))
-            with stat3:
-                st.metric("Subject Length", f"{len(subject)} chars")
+            st.markdown("## 📊 Element Summary")
+            el1, el2, el3, el4 = st.columns(4)
+            with el1:
+                st.metric("📝 Total Words", word_count)
+            with el2:
+                st.metric("🔗 Links Found", len(links_found))
+            with el3:
+                st.metric("😊 Emojis", len(emojis_found))
+            with el4:
+                st.metric("📎 Files Uploaded", len(uploaded_files) if uploaded_files else 0)
 
-            if len(subject) > 60:
-                st.warning("⚠️ Subject line is over 60 characters — consider shortening it.")
+            # Subject length check
+            st.divider()
+            st.markdown("## 📌 Subject Line Analysis")
+            subj_len = len(subject)
+            st.markdown(f"**Current length:** {subj_len} characters")
+            st.progress(min(subj_len / 60, 1.0))
+            if subj_len <= 60:
+                st.success(f"✅ Good length ({subj_len}/60 characters recommended)")
             else:
-                st.success(f"✅ Subject line length is good ({len(subject)}/60 characters).")
+                st.warning(
+                    f"⚠️ Too long ({subj_len} characters) — "
+                    f"trim by {subj_len - 60} characters"
+                )
 
-        # ── TAB 5: Summary ─────────────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # TAB 5 — Final Summary
+        # ══════════════════════════════════════════════════════
         with tab5:
             st.markdown("## 🏆 Final Summary")
-            st.markdown("*Chief Communication Officer Agent*")
+            st.markdown("*Chief Communication Officer Agent verdict*")
             st.divider()
             st.text(results[4]["raw"])
 
-        # ── TAB 6: Export ──────────────────────────────────────
+        # ══════════════════════════════════════════════════════
+        # TAB 6 — Export
+        # ══════════════════════════════════════════════════════
         with tab6:
             st.markdown("## ⬇️ Export Your Report")
+            st.markdown(
+                "Download the full analysis in your preferred format"
+            )
             st.divider()
 
-            exp1, exp2 = st.columns(2)
+            exp1, exp2, exp3 = st.columns(3)
 
+            # PDF Export
             with exp1:
-                st.markdown("### 📄 Export as PDF")
-                if st.button("Generate PDF Report", use_container_width=True):
-                    with st.spinner("Generating PDF..."):
-                        pdf_file = export_as_pdf(
-                            subject, recipient, results,
-                            overall, corrections, links_data
-                        )
-                    with open(pdf_file, "rb") as f:
-                        st.download_button(
-                            "⬇️ Download PDF",
-                            data=f,
-                            file_name=os.path.basename(pdf_file),
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-                    st.success(f"Saved to: {pdf_file}")
+                st.markdown("### 📄 PDF Report")
+                if st.button(
+                    "Generate PDF", use_container_width=True
+                ):
+                    with st.spinner("Generating PDF report..."):
+                        try:
+                            pdf_file = export_as_pdf(
+                                subject, recipient, results,
+                                overall, corrections, links_data
+                            )
+                            with open(pdf_file, "rb") as f:
+                                st.download_button(
+                                    "⬇️ Download PDF",
+                                    data=f,
+                                    file_name=os.path.basename(pdf_file),
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                            st.success(f"Saved: {pdf_file}")
+                        except Exception as e:
+                            st.error(f"PDF error: {str(e)}")
 
+            # Word Export
             with exp2:
-                st.markdown("### 📝 Export as Word Document")
-                if st.button("Generate Word Report", use_container_width=True):
-                    with st.spinner("Generating Word doc..."):
-                        docx_file = export_as_docx(
-                            subject, recipient, results,
-                            overall, corrections, links_data
-                        )
-                    with open(docx_file, "rb") as f:
+                st.markdown("### 📝 Word Document")
+                if st.button(
+                    "Generate Word Doc", use_container_width=True
+                ):
+                    with st.spinner("Generating Word document..."):
+                        try:
+                            docx_file = export_as_docx(
+                                subject, recipient, results,
+                                overall, corrections, links_data
+                            )
+                            with open(docx_file, "rb") as f:
+                                st.download_button(
+                                    "⬇️ Download Word Doc",
+                                    data=f,
+                                    file_name=os.path.basename(docx_file),
+                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    use_container_width=True
+                                )
+                            st.success(f"Saved: {docx_file}")
+                        except Exception as e:
+                            st.error(f"Word doc error: {str(e)}")
+
+            # TXT Export
+            with exp3:
+                st.markdown("### 📋 Text Report")
+                try:
+                    txt_file = save_report(
+                        subject, recipient, results, overall
+                    )
+                    with open(txt_file, "r", encoding="utf-8") as f:
                         st.download_button(
-                            "⬇️ Download Word Doc",
+                            "⬇️ Download TXT Report",
                             data=f,
-                            file_name=os.path.basename(docx_file),
-                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            file_name=os.path.basename(txt_file),
+                            mime="text/plain",
                             use_container_width=True
                         )
-                    st.success(f"Saved to: {docx_file}")
-
-            st.divider()
-            st.markdown("### 📋 Export as TXT")
-            txt_file = save_report(subject, recipient, results, overall)
-            with open(txt_file, "r", encoding="utf-8") as f:
-                st.download_button(
-                    "⬇️ Download TXT Report",
-                    data=f,
-                    file_name=os.path.basename(txt_file),
-                    mime="text/plain",
-                    use_container_width=True
-                )
+                    st.success(f"Saved: {txt_file}")
+                except Exception as e:
+                    st.error(f"TXT error: {str(e)}")

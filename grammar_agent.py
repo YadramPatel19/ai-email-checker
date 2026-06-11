@@ -84,3 +84,39 @@ Format your response clearly with sections.
         "agent": "🖼️  Image Alt Text Suggester",
         "raw": response
     }
+def duplicate_content_agent(text: str) -> dict:
+    """
+    Detects repetitive or duplicate content in the email.
+    """
+    prompt = f"""
+You are a corporate email editor at Tata Steel.
+
+Analyze this email text and find:
+1. Repeated words used too many times unnecessarily
+2. Repeated phrases or sentences
+3. Duplicate information mentioned more than once
+4. Redundant expressions (e.g. "completely finished", "past history")
+
+TEXT:
+{text}
+
+Respond in this EXACT format:
+
+DUPLICATE PHRASES:
+- <repeated phrase 1> (appears X times)
+- <repeated phrase 2> (appears X times)
+
+REDUNDANT EXPRESSIONS:
+- <expression> → suggested fix: <better version>
+
+OVERALL: <Clean / Minor repetition / Significant repetition>
+SUGGESTION: <one tip to improve>
+
+If no duplicates found, write "No repetitive content detected" under each section.
+Do not add anything outside this format.
+"""
+    response = call_llm(prompt)
+    return {
+        "agent": "🔁  Duplicate Content Detector",
+        "raw": response
+    }
