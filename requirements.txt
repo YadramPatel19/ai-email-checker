@@ -1,1 +1,14 @@
-pip freeze > requirements.txt
+streamlit
+groq
+python-dotenv
+google-generativeai
+pymupdf
+python-docx
+openpyxl
+pillow
+pytesseract
+requests
+fpdf2
+opencv-python-headless
+pyzbar
+pandas
