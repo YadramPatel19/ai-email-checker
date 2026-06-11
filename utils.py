@@ -2,17 +2,30 @@ from groq import Groq
 import os
 from dotenv import load_dotenv
 
-# Load .env file for local development
 load_dotenv()
 
-# ── API Key Setup ─────────────────────────────────────────────
-# On Streamlit Cloud → reads from secrets.toml
-# On your local laptop → reads from .env file
-try:
-    import streamlit as st
-    api_key = st.secrets["GROQ_API_KEY"]
-except Exception:
-    api_key = os.getenv("GROQ_API_KEY")
+# ── Get API key ───────────────────────────────────────────────
+def get_api_key():
+    # First try Streamlit secrets (Streamlit Cloud)
+    try:
+        import streamlit as st
+        key = st.secrets.get("GROQ_API_KEY", None)
+        if key:
+            return key
+    except Exception:
+        pass
+
+    # Fall back to .env file (local development)
+    key = os.getenv("GROQ_API_KEY")
+    if key:
+        return key
+
+    raise ValueError(
+        "GROQ_API_KEY not found. Add it to .env locally "
+        "or to Streamlit secrets on cloud."
+    )
+
+api_key = get_api_key()
 
 # ── Groq Client ───────────────────────────────────────────────
 client = Groq(api_key=api_key)
@@ -20,8 +33,7 @@ client = Groq(api_key=api_key)
 
 def call_llm(prompt: str) -> str:
     """
-    Sends a prompt to Groq (Llama 3.3 70B) and returns the response.
-    All 6 agents in agents.py call this function.
+    Sends a prompt to Groq and returns the response.
     Works both locally and on Streamlit Cloud.
     """
     try:
@@ -32,6 +44,5 @@ def call_llm(prompt: str) -> str:
             ]
         )
         return response.choices[0].message.content
-
     except Exception as e:
         return f"[ERROR] Could not get response from Groq: {str(e)}"
