@@ -38,7 +38,7 @@ def call_llm(prompt: str) -> str:
     """
     try:
         response = client.chat.completions.create(
-            model="qwen-qwq-32b",
+            model="llama-4-scout-17b-16e-instruct",
             messages=[
                 {"role": "user", "content": prompt}
             ]
